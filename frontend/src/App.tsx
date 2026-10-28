@@ -1,5 +1,5 @@
 
-import { useState, type FormEvent } from 'react'
+import { useState, type FormEvent, type KeyboardEvent } from 'react'
 import './App.css'
 import { mockFaculty, type Faculty } from './data/faculty'
 
@@ -31,23 +31,19 @@ function searchFaculty(query: string): Faculty[] {
       ]
 
       const normalizedFields = searchableFields.map(normalize)
-
       let score = 0
 
-      // Exact identifiers receive the highest priority.
       if (normalize(faculty.email) === normalizedQuery) score += 100
       if (normalize(faculty.officePhone) === normalizedQuery) score += 100
       if (normalize(faculty.officeRoom) === normalizedQuery) score += 100
 
-      if (normalize(faculty.fullName) === normalizedQuery) score += 90
-      else if (normalize(faculty.fullName).startsWith(normalizedQuery)) {
+      if (normalize(faculty.fullName) === normalizedQuery) {
+        score += 90
+      } else if (normalize(faculty.fullName).startsWith(normalizedQuery)) {
         score += 70
       }
 
-      // Match names, designations, departments and positions.
-      if (
-        normalizedFields.some((field) => field.includes(normalizedQuery))
-      ) {
+      if (normalizedFields.some((field) => field.includes(normalizedQuery))) {
         score += 30
       }
 
@@ -60,11 +56,17 @@ function searchFaculty(query: string): Faculty[] {
 
 function App() {
   const [query, setQuery] = useState('')
+  const [activeSuggestion, setActiveSuggestion] = useState(0)
+  const [showSuggestions, setShowSuggestions] = useState(false)
   const [submittedQuery, setSubmittedQuery] = useState('')
   const [results, setResults] = useState<Faculty[]>([])
   const [hasSearched, setHasSearched] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [selectedFaculty, setSelectedFaculty] = useState<Faculty | null>(null)
+
+  const suggestions = query.trim()
+    ? searchFaculty(query).slice(0, 5)
+    : []
 
   function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -76,6 +78,7 @@ function App() {
     setResults(searchFaculty(trimmedQuery))
     setHasSearched(true)
     setSelectedFaculty(null)
+    setShowSuggestions(false)
     setMenuOpen(false)
   }
 
@@ -85,6 +88,8 @@ function App() {
     setResults([])
     setHasSearched(false)
     setSelectedFaculty(null)
+    setShowSuggestions(false)
+    setActiveSuggestion(0)
     setMenuOpen(false)
   }
 
@@ -94,7 +99,50 @@ function App() {
     setResults(searchFaculty(value))
     setHasSearched(true)
     setSelectedFaculty(null)
+    setShowSuggestions(false)
+    setActiveSuggestion(0)
     setMenuOpen(false)
+  }
+
+  function selectFaculty(faculty: Faculty) {
+    setQuery(faculty.fullName)
+    setSubmittedQuery(faculty.fullName)
+    setResults([faculty])
+    setHasSearched(true)
+    setSelectedFaculty(faculty)
+    setShowSuggestions(false)
+    setActiveSuggestion(0)
+  }
+
+  function handleSearchKeyDown(
+    event: KeyboardEvent<HTMLInputElement>,
+  ) {
+    if (event.key === 'Escape') {
+      setShowSuggestions(false)
+      setActiveSuggestion(0)
+      return
+    }
+
+    if (!showSuggestions || suggestions.length === 0) return
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault()
+      setActiveSuggestion((current) =>
+        (current + 1) % suggestions.length,
+      )
+    }
+
+    if (event.key === 'ArrowUp') {
+      event.preventDefault()
+      setActiveSuggestion((current) =>
+        (current - 1 + suggestions.length) % suggestions.length,
+      )
+    }
+
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      selectFaculty(suggestions[activeSuggestion])
+    }
   }
 
   return (
@@ -110,10 +158,12 @@ function App() {
       <aside className={`sidebar ${menuOpen ? 'sidebar-open' : ''}`}>
         <div className="brand">
           <div className="brand-icon">S</div>
+
           <div>
             <div className="brand-name">SearchIt</div>
             <div className="brand-subtitle">SVNIT Surat</div>
           </div>
+
           <button
             className="close-menu"
             onClick={() => setMenuOpen(false)}
@@ -199,9 +249,19 @@ function App() {
               <input
                 type="search"
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(event) => {
+                  setQuery(event.target.value)
+                  setActiveSuggestion(0)
+                  setShowSuggestions(true)
+                  setSelectedFaculty(null)
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                onKeyDown={handleSearchKeyDown}
                 placeholder="Name, department, designation, email..."
                 aria-label="Search faculty"
+                aria-autocomplete="list"
+                aria-expanded={showSuggestions && suggestions.length > 0}
+                autoComplete="off"
               />
 
               <button
@@ -212,6 +272,41 @@ function App() {
                 Search <span aria-hidden="true">↗</span>
               </button>
             </form>
+
+            {showSuggestions && suggestions.length > 0 && (
+              <div
+                className="autocomplete-list"
+                role="listbox"
+                aria-label="Faculty suggestions"
+              >
+                {suggestions.map((faculty, index) => (
+                  <button
+                    key={faculty.id}
+                    type="button"
+                    role="option"
+                    aria-selected={index === activeSuggestion}
+                    className={`autocomplete-item ${
+                      index === activeSuggestion
+                        ? 'autocomplete-active'
+                        : ''
+                    }`}
+                    onMouseEnter={() => setActiveSuggestion(index)}
+                    onClick={() => selectFaculty(faculty)}
+                  >
+                    <span className="autocomplete-avatar">
+                      {faculty.fullName.charAt(0)}
+                    </span>
+
+                    <span className="autocomplete-details">
+                      <strong>{faculty.fullName}</strong>
+                      <span>
+                        {faculty.designation} · {faculty.department}
+                      </span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
 
             <div className="suggestions">
               <span className="suggestions-label">Try searching for</span>
@@ -233,8 +328,9 @@ function App() {
                   <div>
                     <h2>Search results</h2>
                     <p>
-                      {results.length} {results.length === 1 ? 'match' : 'matches'}{' '}
-                      for <strong>"{submittedQuery}"</strong>
+                      {results.length}{' '}
+                      {results.length === 1 ? 'match' : 'matches'} for{' '}
+                      <strong>"{submittedQuery}"</strong>
                     </p>
                   </div>
 
@@ -338,12 +434,17 @@ function App() {
                 <div className="profile-actions">
                   <button
                     className="clear-results"
-                    onClick={() =>
-                      navigator.clipboard.writeText(selectedFaculty.email)
-                    }
+                    onClick={() => {
+                      void navigator.clipboard
+                        .writeText(selectedFaculty.email)
+                        .catch(() => {
+                          window.alert('Could not copy the email address.')
+                        })
+                    }}
                   >
                     Copy email
                   </button>
+
                   <a
                     className="email-link"
                     href={`mailto:${selectedFaculty.email}`}
@@ -357,6 +458,7 @@ function App() {
             {!hasSearched && (
               <div className="information">
                 <div className="information-icon">i</div>
+
                 <div>
                   <h2>Official faculty information</h2>
                   <p>
