@@ -1,5 +1,7 @@
+
 import { useState, type FormEvent } from 'react'
 import './App.css'
+import { mockFaculty, type Faculty } from './data/faculty'
 
 const sampleSearches = [
   'Chemical Engineering',
@@ -7,18 +9,92 @@ const sampleSearches = [
   'Dean Student Welfare',
 ]
 
+function normalize(value: string) {
+  return value.toLowerCase().trim().replace(/[^\p{L}\p{N}]/gu, '')
+}
+
+function searchFaculty(query: string): Faculty[] {
+  const normalizedQuery = normalize(query)
+
+  if (!normalizedQuery) return []
+
+  return mockFaculty
+    .map((faculty) => {
+      const searchableFields = [
+        faculty.fullName,
+        faculty.designation,
+        faculty.department,
+        ...faculty.administrativePositions,
+        faculty.email,
+        faculty.officePhone,
+        faculty.officeRoom,
+      ]
+
+      const normalizedFields = searchableFields.map(normalize)
+
+      let score = 0
+
+      // Exact identifiers receive the highest priority.
+      if (normalize(faculty.email) === normalizedQuery) score += 100
+      if (normalize(faculty.officePhone) === normalizedQuery) score += 100
+      if (normalize(faculty.officeRoom) === normalizedQuery) score += 100
+
+      if (normalize(faculty.fullName) === normalizedQuery) score += 90
+      else if (normalize(faculty.fullName).startsWith(normalizedQuery)) {
+        score += 70
+      }
+
+      // Match names, designations, departments and positions.
+      if (
+        normalizedFields.some((field) => field.includes(normalizedQuery))
+      ) {
+        score += 30
+      }
+
+      return { faculty, score }
+    })
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map((item) => item.faculty)
+}
+
 function App() {
   const [query, setQuery] = useState('')
+  const [submittedQuery, setSubmittedQuery] = useState('')
+  const [results, setResults] = useState<Faculty[]>([])
+  const [hasSearched, setHasSearched] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [selectedFaculty, setSelectedFaculty] = useState<Faculty | null>(null)
 
-  function handleSearch(event: React.FormEvent<HTMLFormElement>) {
+  function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    if (!query.trim()) return
+    const trimmedQuery = query.trim()
+    if (!trimmedQuery) return
 
-    window.alert(
-      'SearchIt interface is working. Faculty search will be added in the next stage.',
-    )
+    setSubmittedQuery(trimmedQuery)
+    setResults(searchFaculty(trimmedQuery))
+    setHasSearched(true)
+    setSelectedFaculty(null)
+    setMenuOpen(false)
+  }
+
+  function startNewSearch() {
+    setQuery('')
+    setSubmittedQuery('')
+    setResults([])
+    setHasSearched(false)
+    setSelectedFaculty(null)
+    setMenuOpen(false)
+  }
+
+  function runSuggestedSearch(value: string) {
+    setQuery(value)
+    setSubmittedQuery(value)
+    setResults(searchFaculty(value))
+    setHasSearched(true)
+    setSelectedFaculty(null)
+    setMenuOpen(false)
   }
 
   return (
@@ -47,28 +123,19 @@ function App() {
           </button>
         </div>
 
-        <button
-          className="new-search"
-          onClick={() => {
-            setQuery('')
-            setMenuOpen(false)
-          }}
-        >
+        <button className="new-search" onClick={startNewSearch}>
           <span className="plus-icon">+</span>
           New search
         </button>
 
-        <div className="sidebar-heading">RECENT SEARCHES</div>
+        <div className="sidebar-heading">QUICK SEARCHES</div>
 
         <div className="history-list">
           {sampleSearches.map((item) => (
             <button
               className="history-item"
               key={item}
-              onClick={() => {
-                setQuery(item)
-                setMenuOpen(false)
-              }}
+              onClick={() => runSuggestedSearch(item)}
             >
               <span className="history-icon">↗</span>
               <span>{item}</span>
@@ -107,7 +174,7 @@ function App() {
 
           <div className="directory-label">
             <span className="status-dot" />
-            Faculty directory
+            Development preview
           </div>
         </header>
 
@@ -133,8 +200,8 @@ function App() {
                 type="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Name, department, designation..."
-                aria-label="Search SVNIT faculty"
+                placeholder="Name, department, designation, email..."
+                aria-label="Search faculty"
               />
 
               <button
@@ -153,24 +220,153 @@ function App() {
                 <button
                   key={item}
                   className="suggestion-chip"
-                  onClick={() => setQuery(item)}
+                  onClick={() => runSuggestedSearch(item)}
                 >
                   {item}
                 </button>
               ))}
             </div>
 
-            <div className="information">
-              <div className="information-icon">i</div>
-              <div>
-                <h2>Official faculty information</h2>
-                <p>
-                  SearchIt is being built to make publicly available
-                  institutional faculty details easier to find. Official
-                  SVNIT pages will remain the source of truth.
+            {hasSearched && (
+              <section className="results-section" aria-live="polite">
+                <div className="results-heading">
+                  <div>
+                    <h2>Search results</h2>
+                    <p>
+                      {results.length} {results.length === 1 ? 'match' : 'matches'}{' '}
+                      for <strong>"{submittedQuery}"</strong>
+                    </p>
+                  </div>
+
+                  <button className="clear-results" onClick={startNewSearch}>
+                    Clear
+                  </button>
+                </div>
+
+                <p className="mock-warning">
+                  Development preview: every record below is fictional.
                 </p>
+
+                {results.length > 0 ? (
+                  <div className="results-list">
+                    {results.map((faculty) => (
+                      <article className="faculty-result" key={faculty.id}>
+                        <div className="faculty-avatar" aria-hidden="true">
+                          {faculty.fullName.charAt(0)}
+                        </div>
+
+                        <div className="faculty-result-content">
+                          <button
+                            className="faculty-name"
+                            onClick={() => setSelectedFaculty(faculty)}
+                          >
+                            {faculty.fullName}
+                          </button>
+
+                          <p className="faculty-designation">
+                            {faculty.designation}
+                          </p>
+
+                          <p className="faculty-department">
+                            {faculty.department}
+                          </p>
+
+                          {faculty.administrativePositions.length > 0 && (
+                            <p className="faculty-position">
+                              {faculty.administrativePositions.join(', ')}
+                            </p>
+                          )}
+
+                          <button
+                            className="view-profile"
+                            onClick={() => setSelectedFaculty(faculty)}
+                          >
+                            View profile →
+                          </button>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="no-results">
+                    <h3>No matching faculty found</h3>
+                    <p>
+                      Try a different name, department, designation, email,
+                      phone number or office room.
+                    </p>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {selectedFaculty && (
+              <section className="profile-panel">
+                <div className="profile-panel-heading">
+                  <h2>Faculty profile</h2>
+                  <button
+                    className="clear-results"
+                    onClick={() => setSelectedFaculty(null)}
+                  >
+                    Close
+                  </button>
+                </div>
+
+                <p className="mock-warning">
+                  Fictional sample record — not a real faculty profile.
+                </p>
+
+                <h3>{selectedFaculty.fullName}</h3>
+                <p>{selectedFaculty.designation}</p>
+                <p>{selectedFaculty.department}</p>
+
+                {selectedFaculty.administrativePositions.map((position) => (
+                  <p key={position}>{position}</p>
+                ))}
+
+                <div className="profile-contact">
+                  <p>
+                    <strong>Email:</strong> {selectedFaculty.email}
+                  </p>
+                  <p>
+                    <strong>Office phone:</strong> {selectedFaculty.officePhone}
+                  </p>
+                  <p>
+                    <strong>Office room:</strong> {selectedFaculty.officeRoom}
+                  </p>
+                </div>
+
+                <div className="profile-actions">
+                  <button
+                    className="clear-results"
+                    onClick={() =>
+                      navigator.clipboard.writeText(selectedFaculty.email)
+                    }
+                  >
+                    Copy email
+                  </button>
+                  <a
+                    className="email-link"
+                    href={`mailto:${selectedFaculty.email}`}
+                  >
+                    Open email app
+                  </a>
+                </div>
+              </section>
+            )}
+
+            {!hasSearched && (
+              <div className="information">
+                <div className="information-icon">i</div>
+                <div>
+                  <h2>Official faculty information</h2>
+                  <p>
+                    SearchIt is being built to make publicly available
+                    institutional faculty details easier to find. Official
+                    SVNIT pages will remain the source of truth.
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           <footer className="page-footer">
