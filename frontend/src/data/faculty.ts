@@ -9,7 +9,8 @@ export type Faculty = {
   officePhone: string
   officeRoom: string
   officialProfileUrl: string
-  isMock: true
+  photoUrl: string | null
+  isMock: boolean
 }
 
 // Fictional development records only.
@@ -25,6 +26,7 @@ export const mockFaculty: Faculty[] = [
     officePhone: '02610000001',
     officeRoom: 'Room C-101',
     officialProfileUrl: '',
+    photoUrl: null,
     isMock: true,
   },
   {
@@ -37,6 +39,7 @@ export const mockFaculty: Faculty[] = [
     officePhone: '02610000002',
     officeRoom: 'Room C-204',
     officialProfileUrl: '',
+    photoUrl: null,
     isMock: true,
   },
   {
@@ -49,6 +52,7 @@ export const mockFaculty: Faculty[] = [
     officePhone: '02610000003',
     officeRoom: 'Room CS-110',
     officialProfileUrl: '',
+    photoUrl: null,
     isMock: true,
   },
   {
@@ -61,6 +65,7 @@ export const mockFaculty: Faculty[] = [
     officePhone: '02610000004',
     officeRoom: 'Room AI-105',
     officialProfileUrl: '',
+    photoUrl: null,
     isMock: true,
   },
   {
@@ -73,6 +78,7 @@ export const mockFaculty: Faculty[] = [
     officePhone: '02610000005',
     officeRoom: 'Room E-202',
     officialProfileUrl: '',
+    photoUrl: null,
     isMock: true,
   },
 ]

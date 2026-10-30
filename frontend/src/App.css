@@ -778,3 +778,83 @@
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
+
+
+.recent-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.clear-history {
+  padding: 3px 0;
+  color: #858a9d;
+  background: transparent;
+  border: 0;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.clear-history:hover {
+  color: #a7acf0;
+}
+
+.history-item span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+/* Department dropdown */
+.department-filter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 0 4px;
+}
+
+.department-filter label {
+  flex-shrink: 0;
+  color: #a4a8b8;
+  font-size: 12px;
+}
+
+.department-filter select {
+  width: 100%;
+  min-width: 0;
+  padding: 11px 13px;
+  color: #ececf4;
+  background: #1d202c;
+  border: 1px solid #42465b;
+  border-radius: 10px;
+  outline: none;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.department-filter select:focus {
+  border-color: #9298e8;
+}
+
+.department-filter select option {
+  color: #ececf4;
+  background: #1d202c;
+}
+
+.department-error {
+  margin: 9px 4px 0;
+  color: #f0a0a0;
+  font-size: 12px;
+}
+
+@media (max-width: 480px) {
+  .department-filter {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 7px;
+  }
+}
