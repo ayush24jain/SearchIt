@@ -858,3 +858,44 @@
     gap: 7px;
   }
 }
+
+
+
+/* =========================================
+   SEARCHIT - DARK THEME AUTOCOMPLETE SCROLLBAR
+   ========================================= */
+
+.autocomplete-list {
+  max-height: 320px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+
+  /* Firefox scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: #45465b #171821;
+}
+
+/* Chrome, Edge and Safari scrollbar */
+.autocomplete-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.autocomplete-list::-webkit-scrollbar-track {
+  background: #171821;
+  border-radius: 10px;
+}
+
+.autocomplete-list::-webkit-scrollbar-thumb {
+  background: #45465b;
+  border-radius: 10px;
+  border: 2px solid #171821;
+}
+
+.autocomplete-list::-webkit-scrollbar-thumb:hover {
+  background: #666987;
+}
+
+.autocomplete-list::-webkit-scrollbar-corner {
+  background: #171821;
+}

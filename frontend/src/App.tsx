@@ -1,6 +1,7 @@
 
 import {
   useEffect,
+  useRef,
   useState,
   type FormEvent,
   type KeyboardEvent,
@@ -85,6 +86,7 @@ function App() {
   const [submittedQuery, setSubmittedQuery] = useState('')
   const [results, setResults] = useState<Faculty[]>([])
   const [suggestions, setSuggestions] = useState<Faculty[]>([])
+  const suggestionListRef = useRef<HTMLDivElement>(null)
   const [apiError, setApiError] = useState('')
   const [hasSearched, setHasSearched] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -138,7 +140,7 @@ function App() {
     }
   }
 
-  // Fetch autocomplete suggestions using both search and department filters.
+  // Fetch all autocomplete suggestions using search and department filters.
   useEffect(() => {
     let cancelled = false
 
@@ -152,7 +154,7 @@ function App() {
         const data = await fetchFaculty(query, selectedDepartment)
 
         if (!cancelled) {
-          setSuggestions(data.slice(0, 5))
+          setSuggestions(data)
           setApiError('')
         }
       } catch {
@@ -170,6 +172,17 @@ function App() {
       window.clearTimeout(timer)
     }
   }, [query, selectedDepartment])
+
+  // Keep the keyboard-highlighted suggestion visible inside the scrollable list.
+  useEffect(() => {
+    if (!showSuggestions) return
+
+    const activeOption = suggestionListRef.current?.querySelector<HTMLElement>(
+      `[data-suggestion-index="${activeSuggestion}"]`,
+    )
+
+    activeOption?.scrollIntoView({ block: 'nearest' })
+  }, [activeSuggestion, showSuggestions])
 
   async function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -482,13 +495,20 @@ function App() {
 
             {showSuggestions && suggestions.length > 0 && (
               <div
+                ref={suggestionListRef}
                 className="autocomplete-list"
                 role="listbox"
                 aria-label="Faculty suggestions"
+                style={{
+                  maxHeight: '320px',
+                  overflowY: 'auto',
+                  overscrollBehavior: 'contain',
+                }}
               >
                 {suggestions.map((faculty, index) => (
                   <button
                     key={faculty.id}
+                    data-suggestion-index={index}
                     type="button"
                     role="option"
                     aria-selected={index === activeSuggestion}
