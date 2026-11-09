@@ -20,7 +20,7 @@ type FacultyApiResponse = {
   data: ApiFaculty[]
 }
 
-const API_BASE_URL = 'http://localhost:3000/api'
+import API_BASE_URL from "./api";
 
 function mapFaculty(record: ApiFaculty): Faculty {
   return {

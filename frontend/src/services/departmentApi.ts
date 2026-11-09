@@ -1,3 +1,4 @@
+import API_BASE_URL from "./api";
 
 export interface Department {
   id: number;
@@ -5,13 +6,17 @@ export interface Department {
   abbreviation: string | null;
 }
 
+interface ApiDepartment {
+  id: string | number;
+  name: string;
+  abbreviation: string | null;
+}
+
 interface DepartmentsApiResponse {
   success: boolean;
   count: number;
-  data: Department[];
+  data: ApiDepartment[];
 }
-
-const API_BASE_URL = "http://localhost:3000/api";
 
 export async function fetchDepartments(): Promise<Department[]> {
   const response = await fetch(`${API_BASE_URL}/departments`);
@@ -26,5 +31,8 @@ export async function fetchDepartments(): Promise<Department[]> {
     throw new Error("Invalid departments API response");
   }
 
-  return result.data;
+  return result.data.map((department) => ({
+    ...department,
+    id: Number(department.id),
+  }));
 }
