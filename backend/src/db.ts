@@ -9,6 +9,9 @@ const databaseUrl = process.env.DATABASE_URL;
 const pool = databaseUrl
   ? new Pool({
       connectionString: databaseUrl,
+      ssl: databaseUrl.includes("neon.tech")
+        ? { rejectUnauthorized: true }
+        : undefined,
     })
   : new Pool({
       host: process.env.DB_HOST || "localhost",
@@ -16,6 +19,9 @@ const pool = databaseUrl
       database: process.env.DB_NAME || "searchit",
       user: process.env.DB_USER || "postgres",
       password: process.env.DB_PASSWORD,
+      ssl: process.env.DB_HOST?.includes("neon.tech")
+        ? { rejectUnauthorized: true }
+        : undefined,
     });
 
 export default pool;
